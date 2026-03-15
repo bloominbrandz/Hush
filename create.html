@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Create Room - Hush</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #000;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: #111;
+            padding: 2rem;
+            border: 2px solid #333;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            border-radius: 12px;
+        }
+        .security-notice {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 12px;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: left;
+            margin-bottom: 15px;
+            border-radius: 8px;
+        }
+        .security-notice strong { color: #fff; }
+        .error, .success {
+            padding: 12px;
+            margin: 10px 0;
+            font-weight: 600;
+            display: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+        .error {
+            background: rgba(255, 68, 68, 0.1);
+            color: #ff4444;
+            border: 1px solid #ff4444;
+        }
+        .success {
+            background: rgba(68, 255, 68, 0.1);
+            color: #44ff44;
+            border: 1px solid #44ff44;
+        }
+        .custom-code-section {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 2px dashed #333;
+            background: #0a0a0a;
+            border-radius: 8px;
+        }
+        .custom-code-section h3 {
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+        .custom-code-input {
+            display: flex;
+            gap: 0;
+            align-items: stretch;
+            margin-bottom: 10px;
+        }
+        .custom-code-input input {
+            flex: 1;
+            padding: 12px;
+            font-size: 1rem;
+            letter-spacing: 2px;
+            text-align: center;
+            border: 2px solid #333;
+            border-right: none;
+            background: #000;
+            color: #fff;
+            border-radius: 8px 0 0 8px;
+        }
+        .custom-code-input input:focus {
+            outline: none;
+            border-color: #fff;
+        }
+        .custom-code-input button {
+            padding: 0 20px;
+            font-size: 0.85rem;
+            border: 2px solid #fff;
+            border-left: none;
+            background: #fff;
+            color: #000;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            font-weight: 600;
+            border-radius: 0 8px 8px 0;
+            position: relative;
+        }
+        .custom-code-input button:hover:not(:disabled) {
+            background: #000;
+            color: #fff;
+        }
+        .custom-code-input button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        /* Spinner for checking availability */
+        .checking-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #000;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .divider {
+            margin: 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #666;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #333;
+        }
+        .code-display {
+            background: #fff;
+            color: #000;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            border-radius: 8px;
+        }
+        .code-label {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .room-code {
+            font-size: 2.2rem;
+            font-weight: bold;
+            letter-spacing: 6px;
+            font-family: 'Courier New', monospace;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            border-radius: 4px;
+        }
+        .copy-btn:hover {
+            background: #333;
+        }
+        .btn-primary, .btn-secondary {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #fff;
+            font-weight: 600;
+            cursor: pointer;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            border-radius: 8px;
+        }
+        .btn-primary {
+            background: #fff;
+            color: #000;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #000;
+            color: #fff;
+        }
+        .btn-primary:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: transparent;
+            color: #fff;
+        }
+        .btn-secondary:hover {
+            background: #fff;
+            color: #000;
+        }
+        .copied {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff;
+            color: #000;
+            padding: 12px 24px;
+            display: none;
+            font-weight: 600;
+            z-index: 1000;
+            border-radius: 8px;
+        }
+        .availability-status {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+        .availability-status.available {
+            color: #44ff44;
+        }
+        .availability-status.taken {
+            color: #ff4444;
+        }
+        .availability-status.checking {
+            color: #ff9500;
+        }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <base target="_blank">
+</head>
+<body>
+    <div class="copied" id="copiedMsg">Copied!</div>
+    <div class="container">
+        <div class="security-notice">
+            <strong>🔒 Private:</strong> Rooms auto-delete when both users leave.
+        </div>
+        <div class="error" id="errorMsg"></div>
+        <div class="success" id="successMsg"></div>
+        
+        <div class="custom-code-section">
+            <h3>Custom Code</h3>
+            <div class="custom-code-input">
+                <input type="text" id="customCodeInput" maxlength="6" placeholder="6 chars" autocomplete="off">
+                <button id="checkBtn" onclick="checkAvailability()">
+                    <span id="checkBtnText">Check</span>
+                </button>
+            </div>
+            <div class="availability-status" id="availabilityStatus"></div>
+        </div>
+        
+        <div class="divider">Or</div>
+        
+        <div class="code-display">
+            <div class="code-label">Your Room Code</div>
+            <div class="room-code" id="roomCode">------</div>
+            <button class="copy-btn" onclick="copyCode()">Copy</button>
+        </div>
+        
+        <button class="btn-primary" id="enterBtn" onclick="enterRoom()">Enter Room</button>
+        <button class="btn-secondary" onclick="window.location.href='index.html'">Back</button>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyA_BU9LoxbWa8GJr8Sjvog3-w2Qt6Mg3MM",
+            authDomain: "hush-8da1e.firebaseapp.com",
+            databaseURL: "https://hush-8da1e-default-rtdb.firebaseio.com",
+            projectId: "hush-8da1e",
+            storageBucket: "hush-8da1e.firebasestorage.app",
+            messagingSenderId: "223355493095",
+            appId: "1:223355493095:web:c32e9cc7d9b5d33f9fa042"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        
+        let currentCode = '';
+        let isCodeAvailable = false;
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const customCodeFromURL = urlParams.get('custom');
+
+        function generateCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        function isValidCode(code) {
+            return /^[A-Z0-9]{6}$/.test(code);
+        }
+
+        async function initRoom() {
+            // Generate random code immediately for display
+            currentCode = generateCode();
+            document.getElementById('roomCode').textContent = currentCode;
+            isCodeAvailable = true; // Random codes are assumed available
+            
+            // If custom code provided in URL, check it
+            if (customCodeFromURL && isValidCode(customCodeFromURL)) {
+                document.getElementById('customCodeInput').value = customCodeFromURL;
+                await checkAvailability();
+            }
+        }
+
+        async function checkAvailability() {
+            const input = document.getElementById('customCodeInput');
+            const code = input.value.trim().toUpperCase();
+            const statusDiv = document.getElementById('availabilityStatus');
+            const checkBtn = document.getElementById('checkBtn');
+            const checkBtnText = document.getElementById('checkBtnText');
+            
+            hideMessages();
+
+            // Validation
+            if (!code) {
+                // Use random code if empty
+                currentCode = document.getElementById('roomCode').textContent;
+                isCodeAvailable = true;
+                statusDiv.textContent = 'Using random code above';
+                statusDiv.className = 'availability-status available';
+                return;
+            }
+
+            if (!isValidCode(code)) {
+                showError('6 chars: A-Z, 0-9 only');
+                statusDiv.textContent = 'Invalid code format';
+                statusDiv.className = 'availability-status taken';
+                isCodeAvailable = false;
+                return;
+            }
+
+            // Show checking state
+            checkBtn.disabled = true;
+            checkBtnText.innerHTML = 'Checking<span class="checking-spinner"></span>';
+            statusDiv.textContent = 'Checking availability...';
+            statusDiv.className = 'availability-status checking';
+
+            try {
+                const roomRef = db.ref('rooms/' + code);
+                const snapshot = await roomRef.once('value');
+                
+                if (snapshot.exists()) {
+                    // Room exists - not available
+                    statusDiv.textContent = '❌ Code already taken';
+                    statusDiv.className = 'availability-status taken';
+                    isCodeAvailable = false;
+                    showError('This room code is already in use!');
+                } else {
+                    // Room doesn't exist - available!
+                    currentCode = code;
+                    document.getElementById('roomCode').textContent = currentCode;
+                    statusDiv.textContent = '✅ Code available!';
+                    statusDiv.className = 'availability-status available';
+                    isCodeAvailable = true;
+                    showSuccess(`"${currentCode}" is ready!`);
+                }
+            } catch (e) {
+                console.error(e);
+                statusDiv.textContent = 'Error checking';
+                statusDiv.className = 'availability-status taken';
+                isCodeAvailable = false;
+                showError('Connection error. Try again.');
+            } finally {
+                checkBtn.disabled = false;
+                checkBtnText.textContent = 'Check';
+            }
+        }
+
+        function enterRoom() {
+            // Final sanitization check
+            if (!currentCode || currentCode === '------' || currentCode.length !== 6) {
+                showError('Invalid room code!');
+                return;
+            }
+            
+            if (!isCodeAvailable) {
+                showError('Please check code availability first!');
+                return;
+            }
+            
+            // ALWAYS pass action=create - room.html will handle actual creation
+            // This ensures room.html sets the host correctly with userId
+            window.location.href = `room.html?room=${currentCode}&action=create`;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('customCodeInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') checkAvailability();
+            });
+            initRoom();
+        });
+
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorMsg');
+            errorDiv.textContent = msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 3000);
+        }
+
+        function showSuccess(msg) {
+            const successDiv = document.getElementById('successMsg');
+            successDiv.textContent = msg;
+            successDiv.style.display = 'block';
+            setTimeout(() => successDiv.style.display = 'none', 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'none';
+        }
+
+        function copyCode() {
+            if (!currentCode || currentCode === '------') {
+                showError('No code to copy!');
+                return;
+            }
+            
+            navigator.clipboard.writeText(currentCode).then(() => {
+                const msg = document.getElementById('copiedMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 2000);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = currentCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                const msg = document.getElementById('copiedMsg');
+                msg.style.display = 'block';
+                setTimeout(() => msg.style.display = 'none', 2000);
+            });
+        }
+    </script>
+</body>
+</html>

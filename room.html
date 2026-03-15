@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hush Room</title>
+    <style>
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+        }
+        
+        /* Instant UI - No blocking screens */
+        .app-container {
+            display: flex;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            flex-direction: column;
+        }
+        
+        /* Loading indicator only (small, non-blocking) */
+        .top-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #333;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .top-loader.active {
+            opacity: 1;
+        }
+        
+        .top-loader::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 30%;
+            background: #fff;
+            animation: loading 1s infinite ease-in-out;
+        }
+        
+        @keyframes loading {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(400%); }
+        }
+        
+        /* Error overlay (only shows if actually blocked) */
+        .error-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .error-overlay.active {
+            display: flex;
+        }
+        
+        .error-overlay h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .error-overlay p {
+            color: #888;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 15px 30px;
+            border: 2px solid #fff;
+            background: #fff;
+            color: #000;
+            font-size: 0.9rem;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-weight: 600;
+            border-radius: 8px;
+        }
+        
+        /* Video Grid - Shows immediately with placeholder */
+        .video-grid {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            height: calc(100% - 80px);
+        }
+        
+        .video-wrapper {
+            position: relative;
+            flex: 1;
+            min-height: 0;
+            background: #111;
+            overflow: hidden;
+        }
+        
+        .video-wrapper:first-child {
+            border-bottom: 2px solid #000;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            background: #000;
+        }
+        
+        #localVideo {
+            transform: scaleX(-1);
+        }
+        
+        .video-placeholder {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+            color: #444;
+            font-size: 3rem;
+        }
+        
+        .video-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 6px 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 4px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .waiting-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.9);
+            color: #666;
+            text-align: center;
+            padding: 20px;
+            z-index: 5;
+        }
+        
+        .waiting-overlay.hidden {
+            display: none;
+        }
+        
+        .waiting-overlay .icon {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .waiting-overlay p {
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+        }
+        
+        .share-code {
+            background: #222;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            color: #fff;
+            margin-top: 8px;
+        }
+        
+        /* Room Info Bar */
+        .room-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 10px 15px;
+            background: linear-gradient(to bottom, rgba(0,0,0,0.8), transparent);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .room-code {
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .connection-status {
+            font-size: 0.7rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .status-connecting { background: #ff9500; color: #000; }
+        .status-connected { background: #34c759; color: #000; }
+        .status-waiting { background: #666; color: #fff; }
+        .status-error { background: #ff3b30; color: #fff; }
+        
+        /* Controls */
+        .controls {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            background: #000;
+            border-top: 1px solid #222;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 20px;
+            z-index: 100;
+        }
+        
+        .control-btn {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #333;
+            color: #fff;
+            transition: all 0.2s;
+            font-size: 1.3rem;
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        .control-btn:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        
+        .control-btn.muted {
+            background: #fff;
+            color: #000;
+        }
+        
+        .control-btn.off {
+            background: #ff3b30;
+            color: #fff;
+        }
+        
+        .control-btn.exit {
+            background: #ff3b30;
+            color: #fff;
+        }
+        
+        .control-btn.chat-btn {
+            background: #007aff;
+        }
+        
+        .control-btn.chat-btn.has-new {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        /* Chat Overlay */
+        .chat-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+        }
+        
+        .chat-overlay.active {
+            display: flex;
+        }
+        
+        .chat-header {
+            padding: 15px 20px;
+            background: #111;
+            border-bottom: 1px solid #222;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .chat-header h3 {
+            font-size: 1rem;
+        }
+        
+        .close-chat {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            word-wrap: break-word;
+            animation: fadeIn 0.2s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .message.received {
+            background: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .message.sent {
+            background: #007aff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .message-author {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        
+        .chat-input-area {
+            padding: 15px 20px;
+            background: #111;
+            border-top: 1px solid #222;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 20px;
+            background: #222;
+            color: #fff;
+            font-size: 1rem;
+        }
+        
+        .chat-input:focus {
+            outline: none;
+            background: #333;
+        }
+        
+        .send-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            background: #007aff;
+            color: #fff;
+            font-size: 1.2rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .send-btn:disabled {
+            opacity: 0.5;
+        }
+        
+        .system-message {
+            text-align: center;
+            color: #666;
+            font-size: 0.8rem;
+            font-style: italic;
+            padding: 10px;
+        }
+        
+        /* Desktop */
+        @media (min-width: 768px) {
+            .video-grid {
+                flex-direction: row;
+            }
+            
+            .video-wrapper:first-child {
+                border-bottom: none;
+                border-right: 2px solid #000;
+            }
+        }
+    </style>
+    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+</head>
+<body>
+
+<!-- Error Overlay (hidden by default) -->
+<div class="error-overlay" id="errorOverlay">
+    <h1 id="errorTitle">Error</h1>
+    <p id="errorText">Something went wrong</p>
+    <button class="btn" onclick="window.location.href='index.html'">Go Back</button>
+</div>
+
+<!-- Main App - Visible Immediately -->
+<div class="app-container" id="appContainer">
+    <div class="top-loader" id="topLoader"></div>
+    
+    <div class="room-bar">
+        <div class="room-code" id="roomCodeDisplay">------</div>
+        <div class="connection-status status-connecting" id="connStatus">Loading...</div>
+    </div>
+    
+    <div class="video-grid">
+        <!-- Remote Video -->
+        <div class="video-wrapper">
+            <div class="video-placeholder" id="remotePlaceholder">👤</div>
+            <video id="remoteVideo" autoplay playsinline></video>
+            <div class="video-label" id="remoteLabel">Waiting...</div>
+            <div class="waiting-overlay" id="waitingOverlay">
+                <div class="icon">🔒</div>
+                <p>Share this code:</p>
+                <div class="share-code" id="shareCode">------</div>
+                <p style="margin-top: 15px; font-size: 0.75rem; opacity: 0.6;">Waiting for someone...</p>
+            </div>
+        </div>
+        
+        <!-- Local Video -->
+        <div class="video-wrapper">
+            <div class="video-placeholder" id="localPlaceholder">📹</div>
+            <video id="localVideo" autoplay playsinline muted></video>
+            <div class="video-label">You</div>
+        </div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="controls">
+        <button class="control-btn" id="micBtn" onclick="toggleMic()" disabled>🎤</button>
+        <button class="control-btn" id="camBtn" onclick="toggleCam()" disabled>📹</button>
+        <button class="control-btn exit" onclick="endCall()">📞</button>
+        <button class="control-btn chat-btn" id="chatBtn" onclick="toggleChat()" disabled>💬</button>
+    </div>
+</div>
+
+<!-- Chat Overlay -->
+<div class="chat-overlay" id="chatOverlay">
+    <div class="chat-header">
+        <h3>💬 Chat</h3>
+        <button class="close-chat" onclick="toggleChat()">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages"></div>
+    <div class="chat-input-area">
+        <input type="text" class="chat-input" id="chatInput" placeholder="Type..." onkeypress="handleKeyPress(event)">
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>➤</button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // PHASE 1: INSTANT UI RENDERING (< 100ms)
+    // ==========================================
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomCode = urlParams.get('room') || 'UNKNOWN';
+    const action = urlParams.get('action') || 'join';
+    const userId = 'user_' + Math.random().toString(36).substr(2, 9);
+    
+    // Show UI immediately
+    document.getElementById('roomCodeDisplay').textContent = roomCode;
+    document.getElementById('shareCode').textContent = roomCode;
+    document.title = `Hush ${roomCode}`;
+    
+    // ==========================================
+    // PHASE 2: BACKGROUND INITIALIZATION
+    // ==========================================
+    
+    let db, roomRef, chatRef;
+    let isHost = false;
+    let myRole = null;
+    let localStream = null;
+    let peerConnection = null;
+    let isMicMuted = false;
+    let isVideoOff = false;
+    let remoteJoined = false;
+    let unreadMessages = 0;
+    let initStarted = false;
+    
+    const rtcConfig = {
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    };
+    
+    // Start everything asynchronously
+    setTimeout(initApp, 50); // Small delay to ensure UI paint
+    
+    async function initApp() {
+        if (initStarted) return;
+        initStarted = true;
+        
+        showLoader(true);
+        updateStatus('connecting', 'Connecting...');
+        
+        try {
+            // Step 1: Initialize Firebase (fast)
+            await initFirebase();
+            
+            // Step 2: Validate room (fast network call)
+            const canEnter = await validateRoom();
+            if (!canEnter) return;
+            
+            // Step 3: Get user media (can be slow - do last)
+            await initMedia();
+            
+            // Step 4: Setup signaling
+            await setupSignaling();
+            
+            // Step 5: Setup chat
+            setupChat();
+            
+            updateStatus('waiting', 'Waiting...');
+            showLoader(false);
+            
+        } catch (error) {
+            console.error('Init error:', error);
+            showError('Connection Failed', error.message || 'Please check your internet connection');
+        }
+    }
+    
+    function initFirebase() {
+        return new Promise((resolve, reject) => {
+            try {
+                const config = {
+                    apiKey: "AIzaSyA_BU9LoxbWa8GJr8Sjvog3-w2Qt6Mg3MM",
+                    authDomain: "hush-8da1e.firebaseapp.com",
+                    databaseURL: "https://hush-8da1e-default-rtdb.firebaseio.com",
+                    projectId: "hush-8da1e",
+                    storageBucket: "hush-8da1e.firebasestorage.app",
+                    messagingSenderId: "223355493095",
+                    appId: "1:223355493095:web:c32e9cc7d9b5d33f9fa042"
+                };
+                
+                firebase.initializeApp(config);
+                db = firebase.database();
+                resolve();
+            } catch (e) {
+                reject(e);
+            }
+        });
+    }
+    
+    async function validateRoom() {
+        if (!roomCode || roomCode === 'UNKNOWN' || roomCode.length !== 6) {
+            showError('Invalid Room', 'Please check your room code');
+            return false;
+        }
+        
+        roomRef = db.ref('rooms/' + roomCode);
+        const snapshot = await roomRef.once('value');
+        const roomData = snapshot.val();
+        
+        if (!roomData) {
+            if (action === 'create') {
+                await roomRef.set({
+                    createdAt: firebase.database.ServerValue.TIMESTAMP,
+                    host: userId,
+                    guest: null,
+                    offer: null,
+                    answer: null
+                });
+                isHost = true;
+                myRole = 'host';
+                return true;
+            } else {
+                showError('Room Not Found', 'This room doesn\'t exist or has expired');
+                return false;
+            }
+        }
+        
+        if (roomData.guest === null && roomData.host !== userId) {
+            await roomRef.update({ guest: userId });
+            isHost = false;
+            myRole = 'guest';
+            roomRef.onDisconnect().update({ guest: null });
+            return true;
+        }
+        
+        if (roomData.host === userId) {
+            isHost = true;
+            myRole = 'host';
+            return true;
+        }
+        
+        if (roomData.guest !== null && roomData.guest !== userId) {
+            showError('Room Full', 'Only 2 people allowed in a private room');
+            return false;
+        }
+        
+        return false;
+    }
+    
+    async function initMedia() {
+        // Start with low resolution for speed, upgrade later
+        const constraints = {
+            video: {
+                facingMode: 'user',
+                width: { ideal: 640 },
+                height: { ideal: 480 }
+            },
+            audio: true
+        };
+        
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia(constraints);
+            
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = localStream;
+            
+            // Hide placeholder, show video
+            document.getElementById('localPlaceholder').style.display = 'none';
+            
+            // Enable controls
+            document.getElementById('micBtn').disabled = false;
+            document.getElementById('camBtn').disabled = false;
+            document.getElementById('chatBtn').disabled = false;
+            document.getElementById('sendBtn').disabled = false;
+            
+        } catch (error) {
+            console.error('Media error:', error);
+            // Don't block - user can still chat
+            addSystemMessage('Camera access denied. You can still use chat.');
+        }
+    }
+    
+    async function setupSignaling() {
+        if (isHost) {
+            setupHost();
+        } else {
+            setupGuest();
+        }
+    }
+    
+    function setupHost() {
+        console.log('Setting up as host');
+        document.getElementById('waitingOverlay').classList.remove('hidden');
+        
+        roomRef.onDisconnect().remove();
+        
+        roomRef.child('guest').on('value', async (snapshot) => {
+            const guestId = snapshot.val();
+            
+            if (guestId && !remoteJoined) {
+                remoteJoined = true;
+                document.getElementById('waitingOverlay').classList.add('hidden');
+                document.getElementById('remoteLabel').textContent = 'Guest';
+                document.getElementById('remotePlaceholder').style.display = 'none';
+                updateStatus('connected', 'Live');
+                addSystemMessage('Guest joined!');
+                
+                await createPeerConnection();
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                await roomRef.child('offer').set({ type: offer.type, sdp: offer.sdp });
+            } else if (!guestId && remoteJoined) {
+                handleDisconnect();
+            }
+        });
+        
+        roomRef.child('answer').on('value', async (snapshot) => {
+            const answer = snapshot.val();
+            if (answer && peerConnection && !peerConnection.currentRemoteDescription) {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+            }
+        });
+        
+        roomRef.child('iceCandidates/guest').on('child_added', async (snapshot) => {
+            const candidate = snapshot.val();
+            if (peerConnection && peerConnection.remoteDescription) {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+            }
+        });
+    }
+    
+    function setupGuest() {
+        console.log('Setting up as guest');
+        document.getElementById('waitingOverlay').classList.add('hidden');
+        document.getElementById('remoteLabel').textContent = 'Host';
+        
+        createPeerConnection().then(() => {
+            roomRef.child('offer').on('value', async (snapshot) => {
+                const offer = snapshot.val();
+                if (offer && !peerConnection.currentRemoteDescription) {
+                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                    const answer = await peerConnection.createAnswer();
+                    await peerConnection.setLocalDescription(answer);
+                    await roomRef.child('answer').set({ type: answer.type, sdp: answer.sdp });
+                    updateStatus('connected', 'Live');
+                    addSystemMessage('Connected to host!');
+                }
+            });
+            
+            roomRef.child('iceCandidates/host').on('child_added', async (snapshot) => {
+                const candidate = snapshot.val();
+                if (peerConnection && peerConnection.remoteDescription) {
+                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                }
+            });
+            
+            roomRef.child('host').on('value', (snapshot) => {
+                if (!snapshot.val() && remoteJoined) handleDisconnect();
+            });
+        });
+    }
+    
+    async function createPeerConnection() {
+        peerConnection = new RTCPeerConnection(rtcConfig);
+        
+        if (localStream) {
+            localStream.getTracks().forEach(track => {
+                peerConnection.addTrack(track, localStream);
+            });
+        }
+        
+        peerConnection.ontrack = (event) => {
+            document.getElementById('remoteVideo').srcObject = event.streams[0];
+            document.getElementById('remotePlaceholder').style.display = 'none';
+            remoteJoined = true;
+        };
+        
+        peerConnection.onicecandidate = (event) => {
+            if (event.candidate) {
+                const path = `iceCandidates/${myRole}`;
+                roomRef.child(path).push({
+                    candidate: event.candidate.candidate,
+                    sdpMid: event.candidate.sdpMid,
+                    sdpMLineIndex: event.candidate.sdpMLineIndex
+                });
+            }
+        };
+        
+        peerConnection.onconnectionstatechange = () => {
+            if (peerConnection.connectionState === 'disconnected' || 
+                peerConnection.connectionState === 'failed') {
+                handleDisconnect();
+            }
+        };
+    }
+    
+    function handleDisconnect() {
+        remoteJoined = false;
+        document.getElementById('remoteVideo').srcObject = null;
+        document.getElementById('remotePlaceholder').style.display = 'flex';
+        document.getElementById('waitingOverlay').classList.remove('hidden');
+        document.getElementById('remoteLabel').textContent = 'Waiting...';
+        updateStatus('waiting', 'Waiting...');
+        addSystemMessage('User disconnected');
+        if (peerConnection) {
+            peerConnection.close();
+            peerConnection = null;
+        }
+    }
+    
+    // ==========================================
+    // CHAT FUNCTIONS
+    // ==========================================
+    
+    function setupChat() {
+        chatRef = roomRef.child('chat');
+        chatRef.limitToLast(50).on('child_added', (snapshot) => {
+            const msg = snapshot.val();
+            displayMessage(msg);
+            if (!document.getElementById('chatOverlay').classList.contains('active')) {
+                unreadMessages++;
+                updateChatBadge();
+            }
+        });
+    }
+    
+    function displayMessage(data) {
+        const div = document.getElementById('chatMessages');
+        const el = document.createElement('div');
+        const isMe = data.userId === userId;
+        el.className = `message ${isMe ? 'sent' : 'received'}`;
+        el.innerHTML = `
+            <div class="message-author">${isMe ? 'You' : (data.userName || 'User')}</div>
+            ${escapeHtml(data.text)}
+        `;
+        div.appendChild(el);
+        div.scrollTop = div.scrollHeight;
+    }
+    
+    function addSystemMessage(text) {
+        const div = document.getElementById('chatMessages');
+        const el = document.createElement('div');
+        el.className = 'system-message';
+        el.textContent = text;
+        div.appendChild(el);
+        div.scrollTop = div.scrollHeight;
+    }
+    
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text || !chatRef) return;
+        
+        await chatRef.push({
+            text: text,
+            userId: userId,
+            userName: myRole === 'host' ? 'Host' : 'Guest',
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        input.value = '';
+    }
+    
+    // ==========================================
+    // UI CONTROLS
+    // ==========================================
+    
+    function toggleMic() {
+        const btn = document.getElementById('micBtn');
+        if (!localStream) return;
+        
+        const track = localStream.getAudioTracks()[0];
+        if (track) {
+            track.enabled = !track.enabled;
+            isMicMuted = !track.enabled;
+            btn.classList.toggle('muted', isMicMuted);
+            btn.textContent = isMicMuted ? '🚫' : '🎤';
+        }
+    }
+    
+    function toggleCam() {
+        const btn = document.getElementById('camBtn');
+        if (!localStream) return;
+        
+        const track = localStream.getVideoTracks()[0];
+        if (track) {
+            track.enabled = !track.enabled;
+            isVideoOff = !track.enabled;
+            btn.classList.toggle('off', isVideoOff);
+            btn.textContent = isVideoOff ? '🚫' : '📹';
+        }
+    }
+    
+    async function endCall() {
+        if (localStream) localStream.getTracks().forEach(t => t.stop());
+        if (peerConnection) peerConnection.close();
+        
+        if (isHost && roomRef) {
+            await roomRef.remove();
+        } else if (roomRef) {
+            await roomRef.update({ guest: null });
+        }
+        
+        window.location.href = 'index.html';
+    }
+    
+    function toggleChat() {
+        const overlay = document.getElementById('chatOverlay');
+        overlay.classList.toggle('active');
+        if (overlay.classList.contains('active')) {
+            unreadMessages = 0;
+            updateChatBadge();
+            document.getElementById('chatInput').focus();
+        }
+    }
+    
+    function updateChatBadge() {
+        const btn = document.getElementById('chatBtn');
+        btn.classList.toggle('has-new', unreadMessages > 0);
+    }
+    
+    function updateStatus(type, text) {
+        const el = document.getElementById('connStatus');
+        el.className = 'connection-status status-' + type;
+        el.textContent = text;
+    }
+    
+    function showLoader(show) {
+        document.getElementById('topLoader').classList.toggle('active', show);
+    }
+    
+    function showError(title, text) {
+        document.getElementById('errorTitle').textContent = title;
+        document.getElementById('errorText').textContent = text;
+        document.getElementById('errorOverlay').classList.add('active');
+        showLoader(false);
+    }
+    
+    function handleKeyPress(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Cleanup
+    window.addEventListener('beforeunload', async () => {
+        if (isHost && roomRef) await roomRef.remove();
+        else if (roomRef) await roomRef.update({ guest: null });
+    });
+</script>
+</body>
+</html>
