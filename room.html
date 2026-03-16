@@ -5,13 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hush Room</title>
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
-            -webkit-tap-highlight-color: transparent;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background: #ffffff;
@@ -20,7 +14,6 @@
             height: 100vh;
             width: 100vw;
         }
-        
         .app-container {
             display: flex;
             height: 100vh;
@@ -28,45 +21,62 @@
             position: relative;
             flex-direction: column;
         }
-        
+        /* DEBUG OVERLAY */
+        .debug-panel {
+            position: fixed;
+            top: 60px;
+            left: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.9);
+            color: #00ff00;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 11px;
+            z-index: 9999;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 2px solid #000;
+            display: none;
+        }
+        .debug-panel.active { display: block; }
+        .debug-toggle {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 10000;
+            background: #000;
+            color: #fff;
+            border: none;
+            padding: 5px 10px;
+            font-size: 10px;
+            cursor: pointer;
+        }
         .top-loader {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 3px;
             background: #e0e0e0;
             z-index: 1000;
             opacity: 0;
             transition: opacity 0.3s;
         }
-        
-        .top-loader.active {
-            opacity: 1;
-        }
-        
+        .top-loader.active { opacity: 1; }
         .top-loader::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 30%;
+            top: 0; left: 0;
+            height: 100%; width: 30%;
             background: #000000;
             animation: loading 1s infinite ease-in-out;
         }
-        
         @keyframes loading {
             0% { transform: translateX(-100%); }
             100% { transform: translateX(400%); }
         }
-        
         .error-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: #ffffff;
             display: none;
             flex-direction: column;
@@ -76,23 +86,17 @@
             padding: 20px;
             text-align: center;
         }
-        
-        .error-overlay.active {
-            display: flex;
-        }
-        
+        .error-overlay.active { display: flex; }
         .error-overlay h1 {
             font-size: 1.5rem;
             margin-bottom: 1rem;
             color: #000000;
         }
-        
         .error-overlay p {
             color: #666666;
             margin-bottom: 2rem;
             font-size: 0.9rem;
         }
-        
         .btn {
             padding: 15px 30px;
             border: 2px solid #000000;
@@ -102,22 +106,19 @@
             cursor: pointer;
             text-transform: uppercase;
             font-weight: 600;
-            border-radius: 0;
         }
-        
         .btn:hover {
             background: #ffffff;
             color: #000000;
         }
-        
         .video-grid {
             flex: 1;
             display: flex;
             flex-direction: column;
             width: 100%;
             height: calc(100% - 80px);
+            margin-top: 0;
         }
-        
         .video-wrapper {
             position: relative;
             flex: 1;
@@ -126,11 +127,9 @@
             overflow: hidden;
             border: 1px solid #000000;
         }
-        
         .video-wrapper:first-child {
             border-bottom: 2px solid #000000;
         }
-        
         video {
             width: 100%;
             height: 100%;
@@ -138,43 +137,34 @@
             display: block;
             background: #000000;
         }
-        
-        #localVideo {
-            transform: scaleX(-1);
-        }
-        
+        #localVideo { transform: scaleX(-1); }
         .video-placeholder {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             background: #f5f5f5;
             color: #999999;
             font-size: 3rem;
+            z-index: 2;
         }
-        
         .video-label {
             position: absolute;
-            bottom: 10px;
-            left: 10px;
+            bottom: 10px; left: 10px;
             background: #ffffff;
             color: #000000;
             padding: 6px 12px;
             font-size: 0.75rem;
             font-weight: 600;
             border: 1px solid #000000;
+            z-index: 10;
         }
-        
         .waiting-overlay {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -185,40 +175,30 @@
             padding: 20px;
             z-index: 5;
         }
-        
-        .waiting-overlay.hidden {
-            display: none;
-        }
-        
+        .waiting-overlay.hidden { display: none !important; }
         .waiting-overlay .icon {
             font-size: 2.5rem;
             margin-bottom: 10px;
             color: #000000;
         }
-        
         .waiting-overlay p {
             font-size: 0.85rem;
             margin-bottom: 8px;
             color: #333333;
         }
-        
         .share-code {
             background: #000000;
             color: #ffffff;
             padding: 12px 24px;
-            border-radius: 0;
             font-family: 'Courier New', monospace;
             font-size: 1.3rem;
             letter-spacing: 3px;
             margin-top: 8px;
             border: 2px solid #000000;
         }
-        
         .room-bar {
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             padding: 10px 15px;
             background: #ffffff;
             border-bottom: 1px solid #000000;
@@ -227,7 +207,6 @@
             align-items: center;
             z-index: 10;
         }
-        
         .room-code {
             font-size: 0.75rem;
             font-weight: 600;
@@ -236,7 +215,6 @@
             padding: 6px 12px;
             border: 1px solid #000000;
         }
-        
         .connection-status {
             font-size: 0.7rem;
             padding: 5px 10px;
@@ -244,17 +222,13 @@
             border: 1px solid #000000;
             transition: all 0.3s;
         }
-        
         .status-connecting { background: #ffffff; color: #000000; }
         .status-connected { background: #000000; color: #ffffff; }
         .status-waiting { background: #f5f5f5; color: #000000; }
         .status-error { background: #000000; color: #ffffff; }
-        
         .controls {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
+            bottom: 0; left: 0; right: 0;
             height: 80px;
             background: #ffffff;
             border-top: 2px solid #000000;
@@ -265,10 +239,8 @@
             padding: 0 20px;
             z-index: 100;
         }
-        
         .control-btn {
-            width: 55px;
-            height: 55px;
+            width: 55px; height: 55px;
             border-radius: 50%;
             border: 2px solid #000000;
             cursor: pointer;
@@ -280,69 +252,36 @@
             transition: all 0.2s;
             font-size: 1.3rem;
         }
-        
         .control-btn:disabled {
             opacity: 0.3;
             cursor: not-allowed;
             border-color: #999999;
         }
-        
-        .control-btn:active:not(:disabled) {
-            transform: scale(0.95);
-        }
-        
-        .control-btn.muted {
-            background: #000000;
-            color: #ffffff;
-        }
-        
-        .control-btn.off {
-            background: #000000;
-            color: #ffffff;
-        }
-        
-        .control-btn.exit {
-            background: #000000;
-            color: #ffffff;
-        }
-        
-        .control-btn.exit:hover {
-            background: #ffffff;
-            color: #000000;
-        }
-        
-        .control-btn.chat-btn {
-            background: #ffffff;
-            color: #000000;
-        }
-        
+        .control-btn:active:not(:disabled) { transform: scale(0.95); }
+        .control-btn.muted { background: #000000; color: #ffffff; }
+        .control-btn.off { background: #000000; color: #ffffff; }
+        .control-btn.exit { background: #000000; color: #ffffff; }
+        .control-btn.exit:hover { background: #ffffff; color: #000000; }
+        .control-btn.chat-btn { background: #ffffff; color: #000000; }
         .control-btn.chat-btn.has-new {
             animation: pulse 1s infinite;
             background: #000000;
             color: #ffffff;
         }
-        
         @keyframes pulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.1); }
         }
-        
         .chat-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: #ffffff;
             z-index: 200;
             display: none;
             flex-direction: column;
         }
-        
-        .chat-overlay.active {
-            display: flex;
-        }
-        
+        .chat-overlay.active { display: flex; }
         .chat-header {
             padding: 15px 20px;
             background: #000000;
@@ -352,26 +291,22 @@
             justify-content: space-between;
             align-items: center;
         }
-        
         .chat-header h3 {
             font-size: 1rem;
             font-weight: 600;
         }
-        
         .close-chat {
             background: #ffffff;
             border: none;
             color: #000000;
             font-size: 1.5rem;
             cursor: pointer;
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: bold;
         }
-        
         .chat-messages {
             flex: 1;
             overflow-y: auto;
@@ -381,7 +316,6 @@
             gap: 12px;
             background: #f5f5f5;
         }
-        
         .message {
             max-width: 80%;
             padding: 12px 16px;
@@ -390,19 +324,16 @@
             word-wrap: break-word;
             border: 1px solid #000000;
         }
-        
         .message.received {
             background: #ffffff;
             color: #000000;
             align-self: flex-start;
         }
-        
         .message.sent {
             background: #000000;
             color: #ffffff;
             align-self: flex-end;
         }
-        
         .message-author {
             font-size: 0.7rem;
             margin-bottom: 4px;
@@ -410,7 +341,6 @@
             text-transform: uppercase;
             letter-spacing: 1px;
         }
-        
         .chat-input-area {
             padding: 15px 20px;
             background: #ffffff;
@@ -418,7 +348,6 @@
             display: flex;
             gap: 10px;
         }
-        
         .chat-input {
             flex: 1;
             padding: 12px 16px;
@@ -427,15 +356,12 @@
             color: #000000;
             font-size: 1rem;
         }
-        
         .chat-input:focus {
             outline: none;
             background: #f5f5f5;
         }
-        
         .send-btn {
-            width: 45px;
-            height: 45px;
+            width: 45px; height: 45px;
             border: 2px solid #000000;
             background: #000000;
             color: #ffffff;
@@ -445,17 +371,14 @@
             align-items: center;
             justify-content: center;
         }
-        
         .send-btn:hover {
             background: #ffffff;
             color: #000000;
         }
-        
         .send-btn:disabled {
             opacity: 0.3;
             border-color: #999999;
         }
-        
         .system-message {
             text-align: center;
             color: #666666;
@@ -463,23 +386,22 @@
             font-style: italic;
             padding: 10px;
         }
-        
         @media (min-width: 768px) {
-            .video-grid {
-                flex-direction: row;
-            }
-            
+            .video-grid { flex-direction: row; }
             .video-wrapper:first-child {
                 border-bottom: none;
                 border-right: 2px solid #000000;
             }
         }
     </style>
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<base target="_blank">
 </head>
 <body>
+
+<button class="debug-toggle" onclick="toggleDebug()">🐛 DEBUG</button>
+<div class="debug-panel" id="debugPanel"></div>
 
 <div class="error-overlay" id="errorOverlay">
     <h1 id="errorTitle">Error</h1>
@@ -489,16 +411,15 @@
 
 <div class="app-container" id="appContainer">
     <div class="top-loader" id="topLoader"></div>
-    
     <div class="room-bar">
         <div class="room-code" id="roomCodeDisplay">------</div>
         <div class="connection-status status-connecting" id="connStatus">Loading...</div>
     </div>
-    
     <div class="video-grid">
-        <div class="video-wrapper">
+        <div class="video-wrapper" id="remoteWrapper">
             <div class="video-placeholder" id="remotePlaceholder">👤</div>
-            <video id="remoteVideo" autoplay playsinline></video>
+            <!-- FIXED: No display:none, using z-index instead -->
+            <video id="remoteVideo" autoplay playsinline muted></video>
             <div class="video-label" id="remoteLabel">Waiting...</div>
             <div class="waiting-overlay" id="waitingOverlay">
                 <div class="icon">🔒</div>
@@ -507,14 +428,12 @@
                 <p style="margin-top: 15px; font-size: 0.75rem;">Waiting for someone...</p>
             </div>
         </div>
-        
         <div class="video-wrapper">
             <div class="video-placeholder" id="localPlaceholder">📹</div>
             <video id="localVideo" autoplay playsinline muted></video>
             <div class="video-label">You</div>
         </div>
     </div>
-    
     <div class="controls">
         <button class="control-btn" id="micBtn" onclick="toggleMic()" disabled>🎤</button>
         <button class="control-btn" id="camBtn" onclick="toggleCam()" disabled>📹</button>
@@ -537,9 +456,26 @@
 
 <script>
     // ==========================================
-    // FIXED: Asia-Southeast1 Region URL
+    // DEBUG LOGGER
     // ==========================================
+    const debugLogs = [];
+    function log(msg) {
+        const time = new Date().toLocaleTimeString();
+        const line = `[${time}] ${msg}`;
+        console.log(line);
+        debugLogs.push(line);
+        const panel = document.getElementById('debugPanel');
+        if (panel) {
+            panel.innerHTML = debugLogs.slice(-20).join('<br>');
+        }
+    }
+    function toggleDebug() {
+        document.getElementById('debugPanel').classList.toggle('active');
+    }
     
+    // ==========================================
+    // WebRTC Config
+    // ==========================================
     const rtcConfig = {
         iceServers: [
             { urls: "stun:stun.l.google.com:19302" },
@@ -556,36 +492,25 @@
         ]
     };
     
-    // ==========================================
-    // SAFE: Get URL params for room.html only
-    // ==========================================
-    
     const urlParams = new URLSearchParams(window.location.search);
     const roomCode = urlParams.get('room') || 'UNKNOWN';
     const action = urlParams.get('action') || 'join';
     const userId = 'user_' + Math.random().toString(36).substr(2, 9);
     
-    // Show UI immediately
     document.getElementById('roomCodeDisplay').textContent = roomCode;
     document.getElementById('shareCode').textContent = roomCode;
     document.title = `Hush ${roomCode}`;
-    
-    // ==========================================
-    // SAFE: Initialize once with null checks
-    // ==========================================
+    log(`Starting as ${action}, room: ${roomCode}, user: ${userId}`);
     
     let db, roomRef, chatRef;
     let isHost = false;
     let myRole = null;
     let localStream = null;
     let peerConnection = null;
-    let isMicMuted = false;
-    let isVideoOff = false;
     let remoteJoined = false;
     let unreadMessages = 0;
     let initStarted = false;
     
-    // SAFE: Only start if we're on room.html (has appContainer)
     if (document.getElementById('appContainer')) {
         setTimeout(initApp, 50);
     }
@@ -610,15 +535,14 @@
             showLoader(false);
             
         } catch (error) {
-            console.error('Init error:', error);
-            showError('Connection Failed', error.message || 'Please check your internet connection');
+            log('ERROR: ' + error.message);
+            showError('Connection Failed', error.message);
         }
     }
     
     function initFirebase() {
         return new Promise((resolve, reject) => {
             try {
-                // FIXED: Asia-Southeast1 region URL
                 const config = {
                     apiKey: "AIzaSyA_BU9LoxbWa8GJr8Sjvog3-w2Qt6Mg3MM",
                     authDomain: "hush-8da1e.firebaseapp.com",
@@ -629,11 +553,11 @@
                     appId: "1:223355493095:web:c32e9cc7d9b5d33f9fa042"
                 };
                 
-                // SAFE: Only initialize if not already done
                 if (!firebase.apps.length) {
                     firebase.initializeApp(config);
                 }
                 db = firebase.database();
+                log('Firebase initialized');
                 resolve();
             } catch (e) {
                 reject(e);
@@ -650,6 +574,7 @@
         roomRef = db.ref('rooms/' + roomCode);
         const snapshot = await roomRef.once('value');
         const roomData = snapshot.val();
+        log(`Room data: ${JSON.stringify(roomData)}`);
         
         if (action === 'create') {
             if (roomData && roomData.host) {
@@ -667,22 +592,23 @@
             
             isHost = true;
             myRole = 'host';
+            log('HOST: Room created');
             return true;
         }
         
         if (action === 'join') {
             if (!roomData) {
-                showError('Room Not Found', 'This room does not exist. Check the code.');
+                showError('Room Not Found', 'This room does not exist.');
                 return false;
             }
             
             if (!roomData.host) {
-                showError('Invalid Room', 'Room has no host. Create a new one.');
+                showError('Invalid Room', 'Room has no host.');
                 return false;
             }
             
             if (roomData.guest) {
-                showError('Room Full', 'Only 2 people allowed. Try another room.');
+                showError('Room Full', 'Only 2 people allowed.');
                 return false;
             }
             
@@ -690,6 +616,7 @@
             isHost = false;
             myRole = 'guest';
             roomRef.onDisconnect().update({ guest: null });
+            log('GUEST: Joined room');
             return true;
         }
         
@@ -697,18 +624,14 @@
     }
     
     async function initMedia() {
-        const constraints = {
-            video: {
-                facingMode: 'user',
-                width: { ideal: 640 },
-                height: { ideal: 480 }
-            },
-            audio: true
-        };
-        
         try {
-            localStream = await navigator.mediaDevices.getUserMedia(constraints);
-            document.getElementById('localVideo').srcObject = localStream;
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: true
+            });
+            
+            const localVideo = document.getElementById('localVideo');
+            localVideo.srcObject = localStream;
             document.getElementById('localPlaceholder').style.display = 'none';
             
             document.getElementById('micBtn').disabled = false;
@@ -716,134 +639,215 @@
             document.getElementById('chatBtn').disabled = false;
             document.getElementById('sendBtn').disabled = false;
             
+            log('Media initialized, tracks: ' + localStream.getTracks().map(t => t.kind).join(', '));
         } catch (error) {
-            console.error('Media error:', error);
-            addSystemMessage('Camera unavailable. Chat-only mode active.');
+            log('Media error: ' + error.message);
+            addSystemMessage('Camera unavailable. Chat-only mode.');
             document.getElementById('chatBtn').disabled = false;
             document.getElementById('sendBtn').disabled = false;
         }
     }
     
+    // ==========================================
+    // FIXED SIGNALING - Host waits for guest
+    // ==========================================
     async function setupSignaling() {
         if (isHost) {
-            setupHostSignaling();
-        } else {
-            setupGuestSignaling();
-        }
-    }
-    
-    function setupHostSignaling() {
-        document.getElementById('waitingOverlay').classList.remove('hidden');
-        
-        roomRef.onDisconnect().remove();
-        
-        roomRef.child('guest').on('value', async (snapshot) => {
-            const guestId = snapshot.val();
+            log('HOST: Setting up signaling');
+            document.getElementById('waitingOverlay').classList.remove('hidden');
+            roomRef.onDisconnect().remove();
             
-            if (guestId && !remoteJoined) {
-                remoteJoined = true;
-                document.getElementById('waitingOverlay').classList.add('hidden');
-                document.getElementById('remoteLabel').textContent = 'Guest';
-                document.getElementById('remotePlaceholder').style.display = 'none';
-                updateStatus('connected', 'Live');
-                addSystemMessage('Guest joined!');
+            // CRITICAL: Create peer connection BEFORE guest joins
+            // so it's ready to generate offer immediately
+            await createPeerConnection();
+            log('HOST: Peer connection ready, waiting for guest');
+            
+            roomRef.child('guest').on('value', async (snapshot) => {
+                const guestId = snapshot.val();
+                log(`HOST: Guest changed to: ${guestId}`);
                 
-                await createPeerConnection();
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                await roomRef.child('offer').set({ type: offer.type, sdp: offer.sdp });
-            } else if (!guestId && remoteJoined) {
-                handleDisconnect();
-            }
-        });
-        
-        roomRef.child('answer').on('value', async (snapshot) => {
-            const answer = snapshot.val();
-            if (answer && peerConnection && !peerConnection.currentRemoteDescription) {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-            }
-        });
-        
-        roomRef.child('iceCandidates/guest').on('child_added', async (snapshot) => {
-            const candidate = snapshot.val();
-            if (peerConnection && peerConnection.remoteDescription) {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-            }
-        });
-    }
-    
-    function setupGuestSignaling() {
-        document.getElementById('waitingOverlay').classList.add('hidden');
-        document.getElementById('remoteLabel').textContent = 'Host';
-        
-        createPeerConnection().then(() => {
+                if (guestId && !remoteJoined) {
+                    remoteJoined = true;
+                    document.getElementById('waitingOverlay').classList.add('hidden');
+                    document.getElementById('remoteLabel').textContent = 'Guest';
+                    updateStatus('connected', 'Connecting...');
+                    addSystemMessage('Guest joined! Connecting...');
+                    
+                    try {
+                        log('HOST: Creating offer');
+                        const offer = await peerConnection.createOffer();
+                        await peerConnection.setLocalDescription(offer);
+                        log('HOST: Local description set');
+                        
+                        await roomRef.child('offer').set({
+                            type: offer.type,
+                            sdp: offer.sdp,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+                        log('HOST: Offer sent to Firebase');
+                    } catch (err) {
+                        log('HOST ERROR: ' + err.message);
+                    }
+                } else if (!guestId && remoteJoined) {
+                    handleDisconnect();
+                }
+            });
+            
+            // Listen for answer
+            roomRef.child('answer').on('value', async (snapshot) => {
+                const answer = snapshot.val();
+                if (answer && peerConnection && !peerConnection.currentRemoteDescription) {
+                    log('HOST: Received answer');
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+                        log('HOST: Remote description set - should connect now!');
+                        updateStatus('connected', 'Live');
+                    } catch (err) {
+                        log('HOST ERROR setting remote desc: ' + err.message);
+                    }
+                }
+            });
+            
+            // Listen for ICE candidates from guest
+            roomRef.child('iceCandidates/guest').on('child_added', async (snapshot) => {
+                const candidate = snapshot.val();
+                log('HOST: Received guest ICE candidate');
+                if (peerConnection && peerConnection.remoteDescription) {
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        log('HOST: Added guest ICE candidate');
+                    } catch (err) {
+                        log('HOST ICE ERROR: ' + err.message);
+                    }
+                }
+            });
+            
+        } else {
+            // GUEST
+            log('GUEST: Setting up signaling');
+            document.getElementById('waitingOverlay').classList.add('hidden');
+            document.getElementById('remoteLabel').textContent = 'Host';
+            
+            // Create peer connection immediately
+            await createPeerConnection();
+            log('GUEST: Peer connection ready, waiting for offer');
+            
             roomRef.child('offer').on('value', async (snapshot) => {
                 const offer = snapshot.val();
                 if (offer && !peerConnection.currentRemoteDescription) {
-                    await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                    const answer = await peerConnection.createAnswer();
-                    await peerConnection.setLocalDescription(answer);
-                    await roomRef.child('answer').set({ type: answer.type, sdp: answer.sdp });
-                    updateStatus('connected', 'Live');
-                    addSystemMessage('Connected to host!');
+                    log('GUEST: Received offer');
+                    try {
+                        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+                        log('GUEST: Remote description set');
+                        
+                        const answer = await peerConnection.createAnswer();
+                        await peerConnection.setLocalDescription(answer);
+                        log('GUEST: Created answer');
+                        
+                        await roomRef.child('answer').set({
+                            type: answer.type,
+                            sdp: answer.sdp,
+                            timestamp: firebase.database.ServerValue.TIMESTAMP
+                        });
+                        log('GUEST: Answer sent');
+                        
+                        updateStatus('connected', 'Live');
+                        addSystemMessage('Connected to host!');
+                    } catch (err) {
+                        log('GUEST ERROR: ' + err.message);
+                    }
                 }
             });
             
             roomRef.child('iceCandidates/host').on('child_added', async (snapshot) => {
                 const candidate = snapshot.val();
+                log('GUEST: Received host ICE candidate');
                 if (peerConnection && peerConnection.remoteDescription) {
-                    await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                    try {
+                        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+                        log('GUEST: Added host ICE candidate');
+                    } catch (err) {
+                        log('GUEST ICE ERROR: ' + err.message);
+                    }
                 }
             });
             
             roomRef.child('host').on('value', (snapshot) => {
                 if (!snapshot.val() && remoteJoined) handleDisconnect();
             });
-        });
+        }
     }
     
     async function createPeerConnection() {
+        log('Creating peer connection...');
         peerConnection = new RTCPeerConnection(rtcConfig);
         
         if (localStream) {
             localStream.getTracks().forEach(track => {
+                log('Adding track: ' + track.kind);
                 peerConnection.addTrack(track, localStream);
             });
         }
         
+        // CRITICAL FIX: Handle track event properly
         peerConnection.ontrack = (event) => {
-            document.getElementById('remoteVideo').srcObject = event.streams[0];
-            document.getElementById('remotePlaceholder').style.display = 'none';
-            remoteJoined = true;
+            log('ontrack fired! Streams: ' + event.streams.length);
+            const remoteVideo = document.getElementById('remoteVideo');
+            const remotePlaceholder = document.getElementById('remotePlaceholder');
+            
+            if (event.streams && event.streams[0]) {
+                remoteVideo.srcObject = event.streams[0];
+                remotePlaceholder.style.display = 'none';
+                remoteJoined = true;
+                log('Remote video SET - should be visible now!');
+                
+                // Force play
+                remoteVideo.play().catch(e => log('Play error: ' + e.message));
+            }
         };
         
         peerConnection.onicecandidate = (event) => {
             if (event.candidate) {
+                log('Generated ICE candidate');
                 const path = `iceCandidates/${myRole}`;
                 roomRef.child(path).push({
                     candidate: event.candidate.candidate,
                     sdpMid: event.candidate.sdpMid,
                     sdpMLineIndex: event.candidate.sdpMLineIndex
-                });
+                }).then(() => log('ICE candidate sent'))
+                .catch(err => log('ICE send FAILED: ' + err.message));
             }
         };
         
         peerConnection.onconnectionstatechange = () => {
-            if (peerConnection.connectionState === 'disconnected' || 
-                peerConnection.connectionState === 'failed') {
-                handleDisconnect();
+            log('Connection state: ' + peerConnection.connectionState);
+            if (peerConnection.connectionState === 'connected') {
+                log('✅ PEERS CONNECTED!');
+                updateStatus('connected', 'Live');
+            }
+            if (peerConnection.connectionState === 'failed') {
+                log('❌ Connection failed');
             }
         };
+        
+        peerConnection.oniceconnectionstatechange = () => {
+            log('ICE state: ' + peerConnection.iceConnectionState);
+        };
+        
+        return peerConnection;
     }
     
     function handleDisconnect() {
+        log('Handling disconnect');
         remoteJoined = false;
-        document.getElementById('remoteVideo').srcObject = null;
+        const remoteVideo = document.getElementById('remoteVideo');
+        remoteVideo.srcObject = null;
         document.getElementById('remotePlaceholder').style.display = 'flex';
         document.getElementById('waitingOverlay').classList.remove('hidden');
         document.getElementById('remoteLabel').textContent = 'Waiting...';
         updateStatus('waiting', isHost ? 'Waiting...' : 'Reconnecting...');
         addSystemMessage('User disconnected');
+        
         if (peerConnection) {
             peerConnection.close();
             peerConnection = null;
@@ -867,10 +871,7 @@
         const el = document.createElement('div');
         const isMe = data.userId === userId;
         el.className = `message ${isMe ? 'sent' : 'received'}`;
-        el.innerHTML = `
-            <div class="message-author">${isMe ? 'You' : (data.userName || 'User')}</div>
-            ${escapeHtml(data.text)}
-        `;
+        el.innerHTML = `<div class="message-author">${isMe ? 'You' : (data.userName || 'User')}</div>${escapeHtml(data.text)}`;
         div.appendChild(el);
         div.scrollTop = div.scrollHeight;
     }
@@ -901,7 +902,6 @@
     function toggleMic() {
         const btn = document.getElementById('micBtn');
         if (!localStream) return;
-        
         const track = localStream.getAudioTracks()[0];
         if (track) {
             track.enabled = !track.enabled;
@@ -914,7 +914,6 @@
     function toggleCam() {
         const btn = document.getElementById('camBtn');
         if (!localStream) return;
-        
         const track = localStream.getVideoTracks()[0];
         if (track) {
             track.enabled = !track.enabled;
@@ -927,13 +926,8 @@
     async function endCall() {
         if (localStream) localStream.getTracks().forEach(t => t.stop());
         if (peerConnection) peerConnection.close();
-        
-        if (isHost && roomRef) {
-            await roomRef.remove();
-        } else if (roomRef) {
-            await roomRef.update({ guest: null });
-        }
-        
+        if (isHost && roomRef) await roomRef.remove();
+        else if (roomRef) await roomRef.update({ guest: null });
         window.location.href = 'index.html';
     }
     
