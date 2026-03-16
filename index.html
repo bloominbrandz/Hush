@@ -13,7 +13,7 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background: #000;
+            background: #ffffff;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -21,40 +21,38 @@
             padding: 20px;
         }
         .container {
-            background: #111;
+            background: #ffffff;
             padding: 2rem;
-            border: 2px solid #333;
+            border: 2px solid #000000;
             text-align: center;
             max-width: 400px;
             width: 100%;
-            border-radius: 12px;
         }
         .logo {
             margin-bottom: 1.5rem;
             font-size: 3rem;
         }
         .security-notice {
-            background: #1a1a1a;
-            border: 1px solid #333;
+            background: #f5f5f5;
+            border: 1px solid #000000;
             padding: 1rem;
             margin-bottom: 1.5rem;
             text-align: left;
-            border-radius: 8px;
         }
         .security-notice h3 {
             font-size: 0.9rem;
             margin-bottom: 0.5rem;
-            color: #fff;
+            color: #000000;
         }
         .security-notice p {
             font-size: 0.8rem;
-            color: #888;
+            color: #333333;
             line-height: 1.4;
         }
         .section {
             margin-bottom: 1.5rem;
             padding-bottom: 1.5rem;
-            border-bottom: 1px solid #222;
+            border-bottom: 1px solid #e0e0e0;
         }
         .section:last-of-type {
             border-bottom: none;
@@ -63,7 +61,7 @@
         }
         .section-title {
             font-size: 0.75rem;
-            color: #666;
+            color: #666666;
             margin-bottom: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1.5px;
@@ -75,68 +73,60 @@
         input[type="text"] {
             width: 100%;
             padding: 15px;
-            border: 2px solid #333;
+            border: 2px solid #000000;
             font-size: 1.1rem;
             text-align: center;
             text-transform: uppercase;
             letter-spacing: 3px;
             transition: all 0.3s;
-            background: #000;
-            color: #fff;
-            border-radius: 8px;
+            background: #ffffff;
+            color: #000000;
         }
         input[type="text"]:focus {
             outline: none;
-            border-color: #fff;
-            background: #111;
+            background: #f5f5f5;
         }
         .btn {
             width: 100%;
             padding: 15px;
-            border: 2px solid #fff;
+            border: 2px solid #000000;
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             text-transform: uppercase;
             letter-spacing: 1px;
-            border-radius: 8px;
+            background: #000000;
+            color: #ffffff;
         }
-        .btn-primary {
-            background: #fff;
-            color: #000;
-        }
-        .btn-primary:hover {
-            background: #000;
-            color: #fff;
+        .btn:hover {
+            background: #ffffff;
+            color: #000000;
         }
         .btn-secondary {
-            background: transparent;
-            color: #fff;
-            margin-top: 0.5rem;
+            background: #ffffff;
+            color: #000000;
         }
         .btn-secondary:hover {
-            background: #fff;
-            color: #000;
+            background: #000000;
+            color: #ffffff;
         }
         .error {
-            color: #ff4444;
+            color: #000000;
             margin-top: 1rem;
             display: none;
             font-weight: 600;
-            background: rgba(255, 68, 68, 0.1);
+            background: #ffcccc;
             padding: 12px;
-            border: 1px solid #ff4444;
-            border-radius: 8px;
+            border: 1px solid #ff0000;
             font-size: 0.9rem;
         }
         .info-text {
             font-size: 0.75rem;
-            color: #666;
+            color: #666666;
             margin-top: 0.5rem;
         }
     </style>
-    <base target="_blank">
 </head>
 <body>
     <div class="container">
@@ -152,7 +142,7 @@
             <div class="input-group">
                 <input type="text" id="joinRoomCode" placeholder="ROOM CODE" maxlength="6">
             </div>
-            <button class="btn btn-primary" onclick="joinRoom()">Join Room</button>
+            <button class="btn" onclick="joinRoom()">Join Room</button>
             <p class="info-text">Enter 6-character code</p>
         </div>
         
@@ -165,18 +155,39 @@
         </div>
         
         <div class="section">
-            <button class="btn btn-primary" onclick="window.location.href='create.html'">Random Room</button>
+            <button class="btn" onclick="window.location.href='create.html'">Random Room</button>
         </div>
         
         <p class="error" id="errorMsg"></p>
     </div>
 
     <script>
+        // SAFE: Null checks before adding listeners
+        const joinRoomCode = document.getElementById('joinRoomCode');
+        const customRoomCode = document.getElementById('customRoomCode');
+        
+        if (joinRoomCode) {
+            joinRoomCode.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') joinRoom();
+            });
+            joinRoomCode.addEventListener('input', function(e) {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+        }
+        
+        if (customRoomCode) {
+            customRoomCode.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') createCustomRoom();
+            });
+            customRoomCode.addEventListener('input', function(e) {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+        }
+        
         function joinRoom() {
-            const code = document.getElementById('joinRoomCode').value.trim().toUpperCase();
+            const code = joinRoomCode ? joinRoomCode.value.trim().toUpperCase() : '';
             const errorMsg = document.getElementById('errorMsg');
             
-            // Sanitization: Must be exactly 6 chars
             if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
                 errorMsg.textContent = 'Enter valid 6-character code (A-Z, 0-9)';
                 errorMsg.style.display = 'block';
@@ -184,15 +195,13 @@
                 return;
             }
             
-            // Always pass action=join for joining existing rooms
             window.location.href = `room.html?room=${code}&action=join`;
         }
         
         function createCustomRoom() {
-            const code = document.getElementById('customRoomCode').value.trim().toUpperCase();
+            const code = customRoomCode ? customRoomCode.value.trim().toUpperCase() : '';
             const errorMsg = document.getElementById('errorMsg');
             
-            // Sanitization
             if (code.length !== 6 || !/^[A-Z0-9]{6}$/.test(code)) {
                 errorMsg.textContent = '6 chars: A-Z or 0-9 only';
                 errorMsg.style.display = 'block';
@@ -200,25 +209,8 @@
                 return;
             }
             
-            // Pass to create.html for availability check, then room.html will create as host
             window.location.href = `create.html?custom=${code}`;
         }
-        
-        document.getElementById('joinRoomCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') joinRoom();
-        });
-        
-        document.getElementById('customRoomCode').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') createCustomRoom();
-        });
-        
-        document.getElementById('customRoomCode').addEventListener('input', function(e) {
-            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        });
-        
-        document.getElementById('joinRoomCode').addEventListener('input', function(e) {
-            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        });
     </script>
 </body>
 </html>
