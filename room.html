@@ -25,13 +25,11 @@ video { width: 100%; height: 100%; object-fit: cover; display: block; background
 #localVideo { transform: scaleX(-1); }
 .video-placeholder { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #f5f5f5; color: #999999; font-size: 3rem; }
 .video-label { position: absolute; bottom: 10px; left: 10px; background: #ffffff; color: #000000; padding: 6px 12px; font-size: 0.75rem; font-weight: 600; border: 1px solid #000000; }
-/* FIX 6: Semi-transparent waiting overlay so user sees their camera */
 .waiting-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(255,255,255,0.8); color: #666666; text-align: center; padding: 20px; z-index: 5; backdrop-filter: blur(5px); }
 .waiting-overlay.hidden { display: none; }
 .waiting-overlay .icon { font-size: 2.5rem; margin-bottom: 10px; color: #000000; }
 .waiting-overlay p { font-size: 0.85rem; margin-bottom: 8px; color: #333333; }
 .share-code { background: #000000; color: #ffffff; padding: 12px 24px; font-family: 'Courier New', monospace; font-size: 1.3rem; letter-spacing: 3px; margin-top: 8px; border: 2px solid #000000; }
-/* FIX 3: Click to unmute button for autoplay policy */
 .unmute-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); color: #ffffff; z-index: 20; cursor: pointer; }
 .unmute-overlay.active { display: flex; }
 .unmute-overlay .icon { font-size: 3rem; margin-bottom: 15px; }
@@ -71,13 +69,17 @@ video { width: 100%; height: 100%; object-fit: cover; display: block; background
 .send-btn:hover { background: #ffffff; color: #000000; }
 .send-btn:disabled { opacity: 0.3; border-color: #999999; }
 .system-message { text-align: center; color: #666666; font-size: 0.8rem; font-style: italic; padding: 10px; }
-/* FIX 7: Permission denied warning style */
 .permission-warning { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000000; color: #ffffff; padding: 20px; border: 2px solid #000000; text-align: center; z-index: 15; max-width: 80%; }
 .permission-warning button { margin-top: 10px; padding: 10px 20px; background: #ffffff; color: #000000; border: 2px solid #000000; cursor: pointer; font-weight: 600; }
+/* NEW: Audio status indicator */
+.audio-status { position: absolute; top: 10px; right: 10px; background: #000000; color: #ffffff; padding: 4px 8px; font-size: 0.7rem; font-weight: 600; z-index: 10; display: none; }
+.audio-status.active { display: block; }
+.audio-status.muted { background: #ff0000; }
 @media (min-width: 768px) { .video-grid { flex-direction: row; } .video-wrapper:first-child { border-bottom: none; border-right: 2px solid #000000; } }
 </style>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<base target="_blank">
 <base target="_blank">
 </head>
 <body>
@@ -95,15 +97,14 @@ video { width: 100%; height: 100%; object-fit: cover; display: block; background
 <div class="video-grid">
 <div class="video-wrapper">
 <div class="video-placeholder" id="remotePlaceholder">👤</div>
-<!-- FIX 1: Removed muted attribute from remoteVideo -->
-<video id="remoteVideo" autoplay playsinline style="display:none;"></video>
-<!-- FIX 3: Click to unmute overlay for autoplay policy -->
+<!-- FIXED: Start muted to allow autoplay, unmute via user interaction -->
+<video id="remoteVideo" autoplay playsinline muted style="display:none;"></video>
 <div class="unmute-overlay" id="unmuteOverlay" onclick="unmuteRemoteAudio()">
 <div class="icon">🔇</div>
 <p>Click to Enable Audio</p>
 </div>
 <div class="video-label" id="remoteLabel">Waiting...</div>
-<!-- FIX 6: Semi-transparent waiting overlay -->
+<div class="audio-status" id="audioStatus">🔇 Audio Muted</div>
 <div class="waiting-overlay" id="waitingOverlay">
 <div class="icon">🔒</div>
 <p>Share this code:</p>
@@ -115,7 +116,6 @@ video { width: 100%; height: 100%; object-fit: cover; display: block; background
 <div class="video-placeholder" id="localPlaceholder">📹</div>
 <video id="localVideo" autoplay playsinline muted></video>
 <div class="video-label">You</div>
-<!-- FIX 7: Permission denied warning container -->
 <div id="permissionWarning" style="display: none;"></div>
 </div>
 </div>
@@ -144,9 +144,12 @@ video { width: 100%; height: 100%; object-fit: cover; display: block; background
 const rtcConfig = {
 iceServers: [
 { urls: "stun:stun.l.google.com:19302" },
+{ urls: "stun:stun1.l.google.com:19302" },
 { urls: "turn:openrelay.metered.ca:80", username: "openrelayproject", credential: "openrelayproject" },
-{ urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" }
-]
+{ urls: "turn:openrelay.metered.ca:443", username: "openrelayproject", credential: "openrelayproject" },
+{ urls: "turn:openrelay.metered.ca:443?transport=tcp", username: "openrelayproject", credential: "openrelayproject" }
+],
+iceCandidatePoolSize: 10
 };
 
 const urlParams = new URLSearchParams(window.location.search);
@@ -169,14 +172,12 @@ let remoteJoined = false;
 let unreadMessages = 0;
 let initStarted = false;
 let signalingStarted = false;
-
-// FIX 2: ICE Candidate queues for both roles
 let iceCandidateQueue = [];
 let remoteDescriptionSet = false;
-
-// FIX 3: Audio context and autoplay handling
 let audioContext = null;
 let remoteVideoElement = null;
+let connectionAttempts = 0;
+const MAX_RETRIES = 3;
 
 if (document.getElementById('appContainer')) {
 setTimeout(initApp, 50);
@@ -193,8 +194,12 @@ await initFirebase();
 const canEnter = await validateRoom();
 if (!canEnter) return;
 
-// FIX 6: Initialize media BEFORE setting up signaling so user sees themselves while waiting
+// FIXED: Initialize audio context early (requires user interaction later)
+initAudioContext();
+
 await initMedia();
+
+// FIXED: Setup signaling BEFORE showing UI so we don't miss early messages
 await setupSignalingListeners();
 setupChat();
 
@@ -206,10 +211,18 @@ showError('Connection Failed', error.message || 'Please check your internet conn
 }
 }
 
+function initAudioContext() {
+try {
+audioContext = new (window.AudioContext || window.webkitAudioContext)();
+console.log('Audio context created, state:', audioContext.state);
+} catch (e) {
+console.warn('Audio context not supported:', e);
+}
+}
+
 function initFirebase() {
 return new Promise((resolve, reject) => {
 try {
-// FIX 4: Verify this matches your Firebase Console exactly
 const config = {
 apiKey: "AIzaSyA_BU9LoxbWa8GJr8Sjvog3-w2Qt6Mg3MM",
 authDomain: "hush-8da1e.firebaseapp.com",
@@ -252,7 +265,8 @@ host: userId,
 guest: null, 
 offer: null, 
 answer: null,
-iceCandidates: { host: {}, guest: {} } // FIX 5: Initialize ICE candidate structure
+iceCandidates: { host: {}, guest: {} },
+connectionState: 'waiting'
 });
 isHost = true;
 myRole = 'host';
@@ -273,22 +287,20 @@ if (roomData.guest) {
 showError('Room Full', 'Only 2 people allowed. Try another room.');
 return false;
 }
-await roomRef.update({ guest: userId });
+await roomRef.update({ guest: userId, connectionState: 'connecting' });
 isHost = false;
 myRole = 'guest';
-roomRef.onDisconnect().update({ guest: null });
+roomRef.onDisconnect().update({ guest: null, connectionState: 'waiting' });
 console.log('GUEST: Joined room', userId);
 return true;
 }
 return false;
 }
 
-// FIX 7: Handle permission denied with fallback
 async function initMedia() {
-// Try audio + video first
 const constraints = { 
 video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
-audio: true 
+audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
 };
 
 try {
@@ -298,7 +310,6 @@ setupLocalVideo();
 console.warn('Audio+Video failed, trying video only:', error);
 addSystemMessage('Microphone access denied. Trying video only...');
 
-// Fallback to video only
 const videoOnlyConstraints = { 
 video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, 
 audio: false 
@@ -307,7 +318,6 @@ audio: false
 try {
 localStream = await navigator.mediaDevices.getUserMedia(videoOnlyConstraints);
 setupLocalVideo();
-// Show warning that audio is disabled
 showAudioDisabledWarning();
 } catch (videoError) {
 console.error('Video also failed:', videoError);
@@ -337,7 +347,6 @@ warningDiv.innerHTML = `
 <button onclick="this.parentElement.style.display='none'">OK</button>
 `;
 warningDiv.style.display = 'block';
-// Disable mic button since we don't have audio
 document.getElementById('micBtn').disabled = true;
 }
 
@@ -352,7 +361,7 @@ setupGuestListeners();
 }
 }
 
-// HOST: Wait for guest, THEN create peer connection
+// FIXED: Host waits for guest, then creates peer connection with retry logic
 function setupHostListeners() {
 console.log('HOST: Setting up listeners');
 document.getElementById('waitingOverlay').classList.remove('hidden');
@@ -377,7 +386,10 @@ addSystemMessage('Guest joined! Connecting...');
 try {
 await createPeerConnection();
 console.log('HOST: Creating offer');
-const offer = await peerConnection.createOffer();
+const offer = await peerConnection.createOffer({
+offerToReceiveAudio: true,
+offerToReceiveVideo: true
+});
 await peerConnection.setLocalDescription(offer);
 console.log('HOST: Sending offer to Firebase');
 
@@ -391,61 +403,93 @@ console.log('HOST: Offer sent');
 } catch (err) {
 console.error('HOST: Error creating offer:', err);
 addSystemMessage('Connection error. Retrying...');
+if (connectionAttempts < MAX_RETRIES) {
+connectionAttempts++;
+setTimeout(() => setupHostListeners(), 2000);
+}
 }
 } else if (!guestId && remoteJoined) {
 handleDisconnect();
 }
 });
 
-// Listen for answer from guest
+// FIXED: Listen for answer from guest with null check
 roomRef.child('answer').on('value', async (snapshot) => {
 const answer = snapshot.val();
-if (answer && peerConnection) {
+if (answer && peerConnection && !peerConnection.currentRemoteDescription) {
 console.log('HOST: Received answer');
-if (!peerConnection.currentRemoteDescription) {
 try {
 await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-remoteDescriptionSet = true; // FIX 2: Mark remote description as set
+remoteDescriptionSet = true;
 console.log('HOST: Remote description set');
 updateStatus('connected', 'Live');
 
-// FIX 2: Process queued ICE candidates
 await processQueuedIceCandidates();
 } catch (err) {
 console.error('HOST: Error setting remote desc:', err);
 }
 }
-}
 });
 
-// FIX 5: Listen for guest ICE candidates with child_added
+// FIXED: Listen for guest ICE candidates with proper error handling
 roomRef.child('iceCandidates/guest').on('child_added', async (snapshot) => {
 const candidate = snapshot.val();
+if (candidate) {
 console.log('HOST: Received guest ICE candidate');
 await handleRemoteIceCandidate(candidate);
+}
 });
 }
 
-// GUEST: Listen for offer, create answer
+// FIXED: Guest listens for offer with immediate check (race condition fix)
 function setupGuestListeners() {
 console.log('GUEST: Setting up listeners');
 document.getElementById('waitingOverlay').classList.add('hidden');
 document.getElementById('remoteLabel').textContent = 'Host';
 document.getElementById('remoteVideo').style.display = 'block';
 
-// Listen for offer from host
+// FIXED: Check for existing offer immediately
+roomRef.child('offer').once('value').then(async (snapshot) => {
+const offer = snapshot.val();
+if (offer && !peerConnection) {
+console.log('GUEST: Found existing offer');
+await handleOffer(offer);
+}
+});
+
+// Listen for future offers
 roomRef.child('offer').on('value', async (snapshot) => {
 const offer = snapshot.val();
 if (offer && !peerConnection) {
-console.log('GUEST: Received offer, creating peer connection');
+console.log('GUEST: Received offer');
+await handleOffer(offer);
+}
+});
+
+// FIXED: Listen for host ICE candidates
+roomRef.child('iceCandidates/host').on('child_added', async (snapshot) => {
+const candidate = snapshot.val();
+if (candidate) {
+console.log('GUEST: Received host ICE candidate');
+await handleRemoteIceCandidate(candidate);
+}
+});
+
+// Watch if host leaves
+roomRef.child('host').on('value', (snapshot) => {
+if (!snapshot.val() && remoteJoined) handleDisconnect();
+});
+}
+
+// FIXED: Separate offer handling for guest with better error handling
+async function handleOffer(offer) {
 try {
 await createPeerConnection();
 console.log('GUEST: Setting remote description');
 await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-remoteDescriptionSet = true; // FIX 2: Mark remote description as set
+remoteDescriptionSet = true;
 console.log('GUEST: Remote description set');
 
-// FIX 2: Process queued ICE candidates
 await processQueuedIceCandidates();
 
 console.log('GUEST: Creating answer');
@@ -463,24 +507,15 @@ updateStatus('connected', 'Live');
 addSystemMessage('Connected to host!');
 } catch (err) {
 console.error('GUEST: Error in signaling:', err);
+addSystemMessage('Connection failed. Retrying...');
+if (connectionAttempts < MAX_RETRIES) {
+connectionAttempts++;
+setTimeout(() => handleOffer(offer), 2000);
 }
 }
-});
-
-// FIX 5: Listen for host ICE candidates with child_added
-roomRef.child('iceCandidates/host').on('child_added', async (snapshot) => {
-const candidate = snapshot.val();
-console.log('GUEST: Received host ICE candidate');
-await handleRemoteIceCandidate(candidate);
-});
-
-// Watch if host leaves
-roomRef.child('host').on('value', (snapshot) => {
-if (!snapshot.val() && remoteJoined) handleDisconnect();
-});
 }
 
-// FIX 2: Handle remote ICE candidate with queueing support
+// FIXED: Handle remote ICE candidate with queueing and validation
 async function handleRemoteIceCandidate(candidate) {
 if (!candidate || !candidate.candidate) return;
 
@@ -490,6 +525,10 @@ await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
 console.log(`${myRole}: Added remote ICE candidate`);
 } catch (err) {
 console.error(`${myRole}: Error adding ICE candidate:`, err);
+// Don't queue invalid candidates
+if (err.name !== 'TypeError') {
+iceCandidateQueue.push(candidate);
+}
 }
 } else {
 console.log(`${myRole}: Queuing ICE candidate (remote description not set yet)`);
@@ -497,7 +536,6 @@ iceCandidateQueue.push(candidate);
 }
 }
 
-// FIX 2: Process queued ICE candidates after remote description is set
 async function processQueuedIceCandidates() {
 console.log(`${myRole}: Processing ${iceCandidateQueue.length} queued ICE candidates`);
 while (iceCandidateQueue.length > 0) {
@@ -523,7 +561,7 @@ peerConnection.addTrack(track, localStream);
 });
 }
 
-// Handle remote stream
+// FIXED: Handle remote stream with audio unblocking
 peerConnection.ontrack = (event) => {
 console.log('ontrack fired!', event.streams);
 const remoteVideo = document.getElementById('remoteVideo');
@@ -536,15 +574,22 @@ remoteVideo.style.display = 'block';
 remoteJoined = true;
 console.log('Remote video set');
 
-// FIX 3: Attempt to play and handle autoplay policy
-remoteVideo.play().catch(err => {
+// FIXED: Handle autoplay with audio context resume
+remoteVideo.play().then(() => {
+console.log('Remote video playing');
+// Show audio status
+const audioStatus = document.getElementById('audioStatus');
+audioStatus.classList.add('active');
+audioStatus.classList.add('muted');
+audioStatus.textContent = '🔇 Click to Unmute';
+}).catch(err => {
 console.warn('Autoplay prevented:', err);
 showUnmuteOverlay();
 });
 }
 };
 
-// Handle ICE candidates - FIX 5: Use push() instead of set()
+// FIXED: Handle ICE candidates with push and validation
 peerConnection.onicecandidate = (event) => {
 if (event.candidate) {
 console.log('Generated ICE candidate:', event.candidate.candidate.substring(0, 50) + '...');
@@ -564,20 +609,30 @@ console.log('ICE candidate gathering complete');
 }
 };
 
-// Connection state changes
+// FIXED: Better connection state monitoring
 peerConnection.onconnectionstatechange = () => {
 console.log('Connection state:', peerConnection.connectionState);
 if (peerConnection.connectionState === 'connected') {
 console.log('PEERS CONNECTED!');
 updateStatus('connected', 'Live');
+document.getElementById('audioStatus').style.display = 'block';
 }
-if (peerConnection.connectionState === 'disconnected' || peerConnection.connectionState === 'failed') {
+if (peerConnection.connectionState === 'disconnected') {
+console.log('Connection disconnected, waiting...');
+updateStatus('connecting', 'Reconnecting...');
+}
+if (peerConnection.connectionState === 'failed') {
+console.log('Connection failed');
 handleDisconnect();
 }
 };
 
 peerConnection.oniceconnectionstatechange = () => {
 console.log('ICE connection state:', peerConnection.iceConnectionState);
+if (peerConnection.iceConnectionState === 'failed') {
+console.log('ICE failed, restarting...');
+peerConnection.restartIce();
+}
 };
 
 peerConnection.onsignalingstatechange = () => {
@@ -587,39 +642,48 @@ console.log('Signaling state:', peerConnection.signalingState);
 return peerConnection;
 }
 
-// FIX 3: Show unmute overlay when autoplay is blocked
 function showUnmuteOverlay() {
 const overlay = document.getElementById('unmuteOverlay');
 overlay.classList.add('active');
 }
 
-// FIX 3: Unmute remote audio on user interaction
+// FIXED: Unmute with audio context resume and better error handling
 async function unmuteRemoteAudio() {
 const remoteVideo = document.getElementById('remoteVideo');
 const overlay = document.getElementById('unmuteOverlay');
+const audioStatus = document.getElementById('audioStatus');
 
 try {
-// Try to resume audio context if suspended
+// Resume audio context first
 if (audioContext && audioContext.state === 'suspended') {
 await audioContext.resume();
+console.log('Audio context resumed');
 }
 
-// Ensure video is playing with audio
+// Unmute and play
 remoteVideo.muted = false;
 await remoteVideo.play();
 overlay.classList.remove('active');
+
+// Update audio status
+audioStatus.classList.remove('muted');
+audioStatus.textContent = '🔊 Audio On';
+audioStatus.style.background = '#000000';
+
 console.log('Audio enabled by user gesture');
 addSystemMessage('Audio enabled');
 } catch (err) {
 console.error('Failed to unmute:', err);
+addSystemMessage('Could not enable audio. Try clicking again.');
 }
 }
 
 function handleDisconnect() {
 console.log('Handling disconnect');
 remoteJoined = false;
-remoteDescriptionSet = false; // FIX 2: Reset flag
-iceCandidateQueue = []; // FIX 2: Clear queue
+remoteDescriptionSet = false;
+iceCandidateQueue = [];
+connectionAttempts = 0;
 
 const remoteVideo = document.getElementById('remoteVideo');
 remoteVideo.srcObject = null;
@@ -628,6 +692,7 @@ document.getElementById('remotePlaceholder').style.display = 'flex';
 document.getElementById('waitingOverlay').classList.remove('hidden');
 document.getElementById('remoteLabel').textContent = 'Waiting...';
 document.getElementById('unmuteOverlay').classList.remove('active');
+document.getElementById('audioStatus').classList.remove('active');
 updateStatus('waiting', isHost ? 'Waiting...' : 'Reconnecting...');
 addSystemMessage('User disconnected');
 
